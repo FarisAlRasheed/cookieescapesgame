@@ -10,11 +10,14 @@ export interface Actions {
   peckPressed: boolean;
   peckHeld: boolean;
   whistlePressed: boolean;
+  powerPressed: boolean;
   pausePressed: boolean;
   helpPressed: boolean;
 }
 
 const MOUSE_SENS = 0.0025;
+/** Multiplier from settings. */
+export const lookSettings = { sensitivity: 1, invertY: false };
 const PAD_LOOK_SPEED = 2.6; // rad/s at full stick
 const TOUCH_LOOK_SENS = 0.006;
 const DEADZONE = 0.18;
@@ -68,35 +71,59 @@ export class Input {
   }
 
   /** Wire up on-screen touch controls built by the HUD. */
-  bindTouch(joystick: HTMLElement, knob: HTMLElement, buttons: Record<string, HTMLElement>) {
+  bindTouch(zone: HTMLElement, joystick: HTMLElement, knob: HTMLElement, buttons: Record<string, HTMLElement>) {
+    // Floating joystick: it appears under the thumb anywhere in the left zone and follows the finger.
     let joyId: number | null = null;
-    const radius = 50;
-    const updateJoy = (t: Touch) => {
-      const r = joystick.getBoundingClientRect();
-      let dx = t.clientX - (r.left + r.width / 2);
-      let dy = t.clientY - (r.top + r.height / 2);
+    let cx = 0, cy = 0;
+    const radius = 55;
+    const move = (t: Touch) => {
+      let dx = t.clientX - cx, dy = t.clientY - cy;
       const len = Math.hypot(dx, dy);
-      if (len > radius) { dx *= radius / len; dy *= radius / len; }
+      if (len > radius) {
+        // Drag the base along so the stick never feels stuck at the edge
+        const over = len - radius;
+        cx += (dx / len) * over; cy += (dy / len) * over;
+        dx *= radius / len; dy *= radius / len;
+        place();
+      }
       knob.style.transform = `translate(${dx}px, ${dy}px)`;
-      this.joy.x = dx / radius;
-      this.joy.y = -dy / radius;
+      // Small dead zone, then a smooth ramp
+      const mag = Math.min(1, Math.hypot(dx, dy) / radius);
+      const k = mag < 0.12 ? 0 : (mag - 0.12) / 0.88 / Math.max(mag, 1e-3);
+      this.joy.x = (dx / radius) * k;
+      this.joy.y = (-dy / radius) * k;
     };
-    joystick.addEventListener('touchstart', (e) => {
+    const place = () => {
+      const r = zone.getBoundingClientRect();
+      joystick.style.left = `${cx - r.left}px`;
+      joystick.style.top = `${cy - r.top}px`;
+    };
+    zone.addEventListener('touchstart', (e) => {
       e.preventDefault();
+      if (joyId !== null) return;
       const t = e.changedTouches[0];
       joyId = t.identifier;
-      updateJoy(t);
+      cx = t.clientX; cy = t.clientY;
+      place();
+      joystick.classList.add('active');
+      move(t);
+    }, { passive: false });
+    zone.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      for (const t of Array.from(e.changedTouches)) if (t.identifier === joyId) move(t);
     }, { passive: false });
     const endJoy = (e: TouchEvent) => {
       for (const t of Array.from(e.changedTouches)) {
-        if (t.identifier === joyId) {
-          joyId = null; this.joy.x = 0; this.joy.y = 0;
-          knob.style.transform = '';
-        }
+        if (t.identifier !== joyId) continue;
+        joyId = null;
+        this.joy.x = 0; this.joy.y = 0;
+        knob.style.transform = '';
+        joystick.style.left = joystick.style.top = '';
+        joystick.classList.remove('active');
       }
     };
-    joystick.addEventListener('touchend', endJoy);
-    joystick.addEventListener('touchcancel', endJoy);
+    zone.addEventListener('touchend', endJoy);
+    zone.addEventListener('touchcancel', endJoy);
 
     for (const [name, el] of Object.entries(buttons)) {
       el.addEventListener('touchstart', (e) => {
@@ -144,6 +171,7 @@ export class Input {
     let peckPressed = p('KeyE');
     let peckHeld = k('KeyE');
     let whistlePressed = p('KeyQ');
+    let powerPressed = p('KeyF');
     const pausePressed = p('Escape') || p('KeyP');
     const helpPressed = p('KeyH');
 
@@ -163,6 +191,7 @@ export class Input {
       peckPressed ||= edge(2);
       peckHeld ||= btn(2);
       whistlePressed ||= edge(3);
+      powerPressed ||= edge(5);
       this.padPrev = pad.buttons.map((b) => b.pressed);
       if (edge(9)) this.pressed.add('Escape');
     }
@@ -179,8 +208,11 @@ export class Input {
       peckPressed ||= this.touchPressed.has('peck');
       peckHeld ||= this.touchHeld.has('peck');
       whistlePressed ||= this.touchPressed.has('whistle');
+      powerPressed ||= this.touchPressed.has('power');
     }
 
+    lookX *= lookSettings.sensitivity;
+    lookY *= lookSettings.sensitivity * (lookSettings.invertY ? -1 : 1);
     const len = Math.hypot(moveX, moveY);
     if (len > 1) { moveX /= len; moveY /= len; }
 
@@ -190,8 +222,8 @@ export class Input {
     this.touchLookDX = this.touchLookDY = 0;
 
     if (!this.enabled) {
-      return { moveX: 0, moveY: 0, lookX: 0, lookY: 0, flapPressed: false, flapHeld: false, descend: false, peckPressed: false, peckHeld: false, whistlePressed: false, pausePressed, helpPressed };
+      return { moveX: 0, moveY: 0, lookX: 0, lookY: 0, flapPressed: false, flapHeld: false, descend: false, peckPressed: false, peckHeld: false, whistlePressed: false, powerPressed: false, pausePressed, helpPressed };
     }
-    return { moveX, moveY, lookX, lookY, flapPressed, flapHeld, descend, peckPressed, peckHeld, whistlePressed, pausePressed, helpPressed };
+    return { moveX, moveY, lookX, lookY, flapPressed, flapHeld, descend, peckPressed, peckHeld, whistlePressed, powerPressed, pausePressed, helpPressed };
   }
 }

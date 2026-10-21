@@ -13,6 +13,9 @@ export interface LivingRoomParts {
   latch: THREE.Group;
   latchPos: THREE.Vector3;
   remotePos: THREE.Vector3;
+  radioPos: THREE.Vector3;
+  fan: THREE.Group;
+  isTvOn(): boolean;
   toggleTv(): void;
   update(dt: number, time: number): void;
 }
@@ -45,7 +48,8 @@ export function buildLivingRoom(b: Builder, brass: THREE.Material): LivingRoomPa
   const pane = new THREE.Group();
   pane.position.set(hingeX, WIN.bottom, WIN.z);
   scene.add(pane);
-  const glass = new THREE.MeshPhysicalMaterial({ color: 0xdff1ff, roughness: 0.05, transmission: 0.9, transparent: true, opacity: 0.25 });
+  // Plain transparent glass: physical 'transmission' glass re-renders the whole scene every frame
+  const glass = new THREE.MeshStandardMaterial({ color: 0xdff1ff, roughness: 0.05, metalness: 0.1, transparent: true, opacity: 0.18, depthWrite: false });
   const glassMesh = new THREE.Mesh(new THREE.BoxGeometry(WIN.w - 0.08, paneH - 0.08, 0.015), glass);
   glassMesh.position.set(WIN.w / 2, paneH / 2, 0);
   pane.add(glassMesh);
@@ -104,6 +108,7 @@ export function buildLivingRoom(b: Builder, brass: THREE.Material): LivingRoomPa
   let tvOn = false;
   const tvLight = new THREE.PointLight(0x8fc6ff, 0, 3, 2);
   tvLight.position.set(X1 - 0.6, 1.1, 0);
+  tvLight.userData.optional = true; // skipped on phones
   scene.add(tvLight);
   addPlant(b, X1 - 0.25, 0.5, 0.8, 0.5);
 
@@ -145,6 +150,15 @@ export function buildLivingRoom(b: Builder, brass: THREE.Material): LivingRoomPa
     scene.add(fruit);
   }
 
+  // Little talk radio on the dining table
+  const radioPos = new THREE.Vector3(dX + 0.5, 0.77 + 0.07, dZ + 0.25);
+  b.boxOn([0.22, 0.13, 0.09], radioPos.x, 0.77, radioPos.z, mat(0xd96f5a, 0.5));
+  const grille = b.cylinder(0.04, 0.04, 0.01, [radioPos.x - 0.05, radioPos.y, radioPos.z + 0.046], mat(0x4a3a30, 0.8), false, 16);
+  grille.rotation.x = Math.PI / 2;
+  b.cylinder(0.012, 0.012, 0.01, [radioPos.x + 0.06, radioPos.y + 0.02, radioPos.z + 0.046], mat(0xf6efe4, 0.4), false, 10).rotation.x = Math.PI / 2;
+  const antenna = b.cylinder(0.003, 0.003, 0.22, [radioPos.x + 0.08, radioPos.y + 0.15, radioPos.z - 0.02], mat(0xcccccc, 0.3, { metalness: 0.8 }), false, 6);
+  antenna.rotation.z = -0.4;
+
   // ---------- Tall bookshelf (south wall) ----------
   const bsX = 3.7, bsZ = Z1 - 0.2;
   b.boxOn([1.1, 2.0, 0.36], bsX, 0, bsZ, woodMat);
@@ -170,6 +184,7 @@ export function buildLivingRoom(b: Builder, brass: THREE.Material): LivingRoomPa
   b.cylinder(0.12, 0.2, 0.25, [sofaX - 0.4, 1.6, 1.5], floorShade, true, 20);
   const floorLight = new THREE.PointLight(0xffc98a, 1.4, 4, 1.6);
   floorLight.position.set(sofaX - 0.4, 1.5, 1.5);
+  floorLight.userData.optional = true; // skipped on phones
   scene.add(floorLight);
   pottedPlant(b, X1 - 0.3, Z1 - 0.3, 1.6);
   pottedPlant(b, X0 + 0.4, Z0 + 0.4, 1.3);
@@ -198,7 +213,8 @@ export function buildLivingRoom(b: Builder, brass: THREE.Material): LivingRoomPa
   const updateDust = dustMotes(b, new THREE.Vector3(WIN.x - 1, 0.3, Z0 + 0.2), new THREE.Vector3(WIN.x + 1, 2.4, Z0 + 2.5));
 
   return {
-    pane, paneCollider, latch, latchPos, remotePos,
+    pane, paneCollider, latch, latchPos, remotePos, radioPos, fan,
+    isTvOn: () => tvOn,
     toggleTv() {
       tvOn = !tvOn;
       tvLight.intensity = tvOn ? 1.2 : 0;

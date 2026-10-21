@@ -34,6 +34,8 @@ export interface CookieVisual {
   root: THREE.Group;
   /** Attach carried objects here. */
   beakAnchor: THREE.Object3D;
+  /** Tiny golden crown, unlocked by collecting every necklace. */
+  setCrown(on: boolean): void;
   update(dt: number, s: PoseState): void;
   flap(): void;
   peck(): void;
@@ -47,6 +49,24 @@ export async function createCookie(): Promise<CookieVisual> {
   } catch {
     return new ProceduralCookie();
   }
+}
+
+function buildCrown() {
+  const g = new THREE.Group();
+  const gold = new THREE.MeshStandardMaterial({ color: 0xf5c542, metalness: 1, roughness: 0.25, emissive: 0x6b4a00, emissiveIntensity: 0.5 });
+  const band = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.032, 0.018, 16, 1, true), gold);
+  band.material.side = THREE.DoubleSide;
+  g.add(band);
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * Math.PI * 2;
+    const spike = new THREE.Mesh(new THREE.ConeGeometry(0.008, 0.022, 6), gold);
+    spike.position.set(Math.sin(a) * 0.03, 0.02, Math.cos(a) * 0.03);
+    const gem = new THREE.Mesh(new THREE.SphereGeometry(0.005, 8, 6), new THREE.MeshStandardMaterial({ color: 0xe85d4a, emissive: 0x601010 }));
+    gem.position.set(Math.sin(a) * 0.031, 0.002, Math.cos(a) * 0.031);
+    g.add(spike, gem);
+  }
+  g.visible = false;
+  return g;
 }
 
 function mat(color: number, roughness = 0.85) {
@@ -71,6 +91,7 @@ class ProceduralCookie implements CookieVisual {
   private tuck = 0;
   private bank = 0;
   beakAnchor = new THREE.Object3D();
+  private crown = buildCrown();
   private tail = new THREE.Group();
   private beakLower!: THREE.Mesh;
 
@@ -197,6 +218,10 @@ class ProceduralCookie implements CookieVisual {
       }
     }
 
+    this.crown.position.set(0, 0.045, -0.012);
+    this.crown.rotation.x = -0.25;
+    this.head.add(this.crown);
+
     // Where carried items sit (tip of the beak)
     this.beakAnchor.position.set(0, -0.02, 0.07);
     this.head.add(this.beakAnchor);
@@ -205,6 +230,7 @@ class ProceduralCookie implements CookieVisual {
   flap() { this.flapT = 0; }
   peck() { this.peckT = 0; }
   whistle() { this.whistleT = 0; }
+  setCrown(on: boolean) { this.crown.visible = on; }
 
   update(dt: number, s: PoseState) {
     this.t += dt;
@@ -274,6 +300,7 @@ class GltfCookie implements CookieVisual {
   root = new THREE.Group();
   private holder = new THREE.Group();
   beakAnchor = new THREE.Object3D();
+  private crown = buildCrown();
   private mixer: THREE.AnimationMixer | null = null;
   private t = 0;
   private hopT = 1;
@@ -294,6 +321,9 @@ class GltfCookie implements CookieVisual {
     this.root.add(this.holder);
     this.beakAnchor.position.set(0, COOKIE_HEIGHT * 0.65, 0.09);
     this.holder.add(this.beakAnchor);
+    this.crown.position.set(0, COOKIE_HEIGHT + 0.01, 0.02);
+    this.crown.scale.setScalar(1.4);
+    this.holder.add(this.crown);
     if (clips.length) {
       this.mixer = new THREE.AnimationMixer(scene);
       this.mixer.clipAction(clips[0]).play();
@@ -303,6 +333,7 @@ class GltfCookie implements CookieVisual {
   flap() { this.hopT = 0; }
   peck() { this.hopT = 0; }
   whistle() {}
+  setCrown(on: boolean) { this.crown.visible = on; }
 
   update(dt: number, s: PoseState) {
     this.t += dt;

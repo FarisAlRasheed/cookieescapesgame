@@ -22,6 +22,7 @@ export interface BedroomParts {
   key: THREE.Group;
   keyGlow: THREE.PointLight;
   lampPos: THREE.Vector3;
+  clockPos: THREE.Vector3;
   toggleLamp(): void;
   update(time: number): void;
 }
@@ -87,7 +88,8 @@ export function buildBedroom(b: Builder, brass: THREE.Material): BedroomParts {
   b.box([0.03, 0.06, DOOR.w + 0.12], [X1 - 0.015, DOOR.h + 0.04, DOOR.z], trimMat, { collider: false });
 
   // ---------- Window (stays closed) ----------
-  const glass = new THREE.MeshPhysicalMaterial({ color: 0xdff1ff, roughness: 0.05, transmission: 0.9, transparent: true, opacity: 0.25 });
+  // Plain transparent glass: physical 'transmission' glass re-renders the whole scene every frame
+  const glass = new THREE.MeshStandardMaterial({ color: 0xdff1ff, roughness: 0.05, metalness: 0.1, transparent: true, opacity: 0.18, depthWrite: false });
   b.box([0.02, winTop - winBottom, winW], [X0 - 0.04, (winTop + winBottom) / 2, winZ], glass, { cast: false });
   b.box([0.08, 0.05, winW + 0.1], [X0 - 0.02, winBottom - 0.025, winZ], trimMat);
   b.box([0.2, 0.04, winW + 0.16], [X0 + 0.06, winBottom - 0.02, winZ], trimMat);
@@ -122,6 +124,7 @@ export function buildBedroom(b: Builder, brass: THREE.Material): BedroomParts {
   b.cylinder(0.09, 0.15, 0.17, [nsX, 0.83, nsZ], shadeMat, true, 20);
   const lampLight = new THREE.PointLight(0xffc98a, 1.6, 4, 1.6);
   lampLight.position.set(nsX, 0.8, nsZ);
+  lampLight.userData.optional = true; // skipped on phones
   scene.add(lampLight);
   let lampOn = true;
 
@@ -170,6 +173,7 @@ export function buildBedroom(b: Builder, brass: THREE.Material): BedroomParts {
   scene.add(key);
   const keyGlow = new THREE.PointLight(0xffd36b, 0.5, 0.8, 2);
   keyGlow.position.copy(keyPos).add(new THREE.Vector3(0, 0.15, 0));
+  keyGlow.userData.optional = true; // skipped on phones
   scene.add(keyGlow);
   // The big book standing in front of the key
   const bookSize: [number, number, number] = [0.24, 0.3, 0.05];
@@ -190,6 +194,23 @@ export function buildBedroom(b: Builder, brass: THREE.Material): BedroomParts {
   pottedPlant(b, X1 - 0.3, Z1 - 0.3);
   frame(b, -0.9, 1.6, Z1 - 0.015, 0xa9c6d8, 'x', -1);
   frame(b, 0.1, 1.75, Z1 - 0.015, 0xe8c9a0, 'x', -1);
+  // Wall clock (ticks softly)
+  const clockPos = new THREE.Vector3(0.75, 2.05, Z1 - 0.03);
+  const clockFace = b.cylinder(0.14, 0.14, 0.03, [clockPos.x, clockPos.y, clockPos.z], mat(0xfaf4ea, 0.5), false, 32);
+  clockFace.rotation.x = Math.PI / 2;
+  const clockRim = new THREE.Mesh(new THREE.TorusGeometry(0.14, 0.012, 8, 32), mat(PALETTE.woodDark, 0.5));
+  clockRim.position.copy(clockPos);
+  scene.add(clockRim);
+  const hand = (len: number, angle: number) => {
+    const h = new THREE.Mesh(new THREE.BoxGeometry(0.008, len, 0.004), mat(0x333333));
+    h.geometry.translate(0, len / 2, 0);
+    h.position.set(clockPos.x, clockPos.y, clockPos.z - 0.02);
+    h.rotation.z = angle;
+    scene.add(h);
+    return h;
+  };
+  hand(0.07, 1.2);
+  const minuteHand = hand(0.11, -0.4);
   b.cylinder(0.005, 0.005, 0.4, [0.2, H - 0.2, 0.2], mat(0x333333), false, 6);
   b.cylinder(0.08, 0.22, 0.16, [0.2, H - 0.45, 0.2], shadeMat, false);
   const fill = new THREE.PointLight(0xfff0dc, 1.2, 8, 1.2);
@@ -204,6 +225,7 @@ export function buildBedroom(b: Builder, brass: THREE.Material): BedroomParts {
     door, doorCollider, handle, handleTop, handlePad,
     book, bookCollider, key, keyGlow,
     lampPos: new THREE.Vector3(nsX, 0.6, nsZ),
+    clockPos,
     toggleLamp() {
       lampOn = !lampOn;
       lampLight.intensity = lampOn ? 1.6 : 0;
@@ -211,6 +233,7 @@ export function buildBedroom(b: Builder, brass: THREE.Material): BedroomParts {
     },
     update(time) {
       updateDust(time);
+      minuteHand.rotation.z = -time * 0.05;
     },
   };
 }

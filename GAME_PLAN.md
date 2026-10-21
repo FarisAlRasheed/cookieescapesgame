@@ -1,5 +1,7 @@
 # Cookie Escapes — Game Plan (v1)
 
+> Status (2026-10-21): Level 1 playable end to end — phases 0–8 built, deployed at https://cookieescapesgame.vercel.app. Next: replace placeholder models (Cookie GLB), then Level 2.
+
 A calm, funny 3D web game. You play **Cookie**, a grey cockatiel with orange cheeks and a yellow crest, trying to escape the house while the family tries (clumsily) to catch him.
 
 ---
@@ -122,7 +124,7 @@ Each necklace collected fills a **gold meter**. When the meter is full, press **
 - **Furniture/props:** Poly Haven (CC0 realistic models + textures), Quaternius & Kenney (stylised), Sketchfab CC-BY (with credits).
 - **Cookie and the humans:** these need character models with animations (rig). Options are below (see Question 1).
 - **HDRI lighting:** Poly Haven interior HDRIs.
-- **Sound:** calm acoustic/lo-fi music with an oud or guitar touch; real cockatiel chirps; funny "boing" sounds for slips. Sources: freesound.org (CC0), Pixabay audio.
+- **Sound:** no music. Background ambience instead (wind, a talk radio in the living room, birds outside, a ticking clock); cockatiel chirps and whistles; funny "boing" sounds. All synthesized in code.
 
 **Fallback:** the game is built first with simple shapes (greybox), so gameplay is fun before the art arrives. Models are swapped in later without code changes.
 

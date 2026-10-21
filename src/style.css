@@ -56,12 +56,19 @@ html, body {
   box-shadow: 0 4px 14px rgba(0,0,0,.1);
   transition: background .4s;
 }
-.objective.done { background: rgba(214, 245, 200, .92); }
-.stamina { background: var(--panel); border-radius: 14px; padding: 8px 12px; min-width: 180px; box-shadow: 0 4px 14px rgba(0,0,0,.1); }
-.stamina label { font-size: 14px; font-weight: 700; display: block; margin-bottom: 4px; }
-.stamina .bar { height: 12px; border-radius: 999px; background: #e7d6bd; overflow: hidden; }
-.stamina .fill { height: 100%; width: 100%; background: linear-gradient(90deg, #f7c95a, var(--orange)); transition: width .1s linear; }
+.objective.pulse { animation: pulse .6s ease-out; }
+@keyframes pulse { 0% { transform: scale(1.08); background: rgba(255, 229, 138, .95); } 100% { transform: scale(1); } }
+.hud-stack { display: flex; flex-direction: column; gap: 6px; }
+.hud-stack.center { align-items: center; }
+.meter { background: var(--panel); border-radius: 14px; padding: 6px 12px; min-width: 180px; box-shadow: 0 4px 14px rgba(0,0,0,.1); }
+.meter label { font-size: 13px; font-weight: 700; display: block; margin-bottom: 3px; }
+.meter .bar { height: 10px; border-radius: 999px; background: #e7d6bd; overflow: hidden; }
+.meter .fill { height: 100%; width: 100%; background: linear-gradient(90deg, #f7c95a, var(--orange)); transition: width .15s linear; }
 .stamina.low .fill { background: #e45b4b; }
+.gold .fill { width: 0; background: linear-gradient(90deg, #ffe58a, #f2b134, #d99a1a); }
+.gold.ready { animation: glow 1s ease-in-out infinite alternate; }
+@keyframes glow { from { box-shadow: 0 0 6px rgba(242,177,52,.4); } to { box-shadow: 0 0 22px rgba(242,177,52,.95); } }
+.chip { background: var(--panel); border-radius: 999px; padding: 4px 12px; font-weight: 700; font-size: 16px; box-shadow: 0 4px 14px rgba(0,0,0,.1); direction: ltr; min-height: 28px; }
 .toast {
   position: absolute; top: 30%; left: 50%; transform: translateX(-50%);
   background: var(--panel); padding: 8px 18px; border-radius: 999px; font-weight: 700; font-size: 18px;
@@ -83,10 +90,14 @@ html, body {
 .touch { display: none; }
 .is-touch .touch { display: block; }
 .is-touch .help-hint, .is-touch .help-panel { display: none; }
+.joy-zone { position: absolute; left: 0; bottom: 0; width: 45%; height: 55%; pointer-events: auto; }
 .joystick {
-  position: absolute; bottom: 28px; left: 28px; width: 130px; height: 130px; border-radius: 50%;
-  background: rgba(255, 246, 232, .35); border: 2px solid rgba(255,255,255,.6); pointer-events: auto;
+  position: absolute; left: 95px; top: calc(100% - 100px); width: 130px; height: 130px; border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 246, 232, .3); border: 2px solid rgba(255,255,255,.55); opacity: .6;
+  transition: opacity .15s;
 }
+.joystick.active { opacity: 1; }
 .joystick .knob {
   position: absolute; left: 50%; top: 50%; width: 56px; height: 56px; margin: -28px 0 0 -28px;
   border-radius: 50%; background: rgba(255, 246, 232, .9);
@@ -101,7 +112,6 @@ html, body {
 .tbtn.active { transform: scale(.92); }
 
 /* ---------- Prompt, timer, win ---------- */
-.timer { background: var(--panel); border-radius: 14px; padding: 8px 14px; font-weight: 700; font-size: 18px; direction: ltr; box-shadow: 0 4px 14px rgba(0,0,0,.1); }
 .prompt {
   position: absolute; bottom: 90px; left: 50%; transform: translateX(-50%);
   background: var(--panel); border-radius: 999px; padding: 8px 18px 8px 10px;
@@ -122,3 +132,46 @@ html, body {
   .objective { max-width: 100%; order: -1; flex-basis: 100%; font-size: 15px; }
   .stamina { min-width: 130px; }
 }
+
+/* ---------- Bubbles over people ---------- */
+.bubbles { position: absolute; inset: 0; overflow: hidden; }
+.bubble {
+  position: absolute; left: 0; top: 0; background: #fff; color: var(--ink); border-radius: 14px;
+  padding: 4px 10px; font-weight: 700; font-size: 15px; white-space: nowrap;
+  box-shadow: 0 3px 10px rgba(0,0,0,.15); pointer-events: none;
+}
+.bubble::after { content: ''; position: absolute; bottom: -6px; left: 50%; margin-left: -6px; border: 6px solid transparent; border-top-color: #fff; border-bottom: 0; }
+.bubble.icon { font-size: 24px; padding: 0 6px; background: transparent; box-shadow: none; }
+.bubble.icon::after { display: none; }
+
+/* ---------- Effects ---------- */
+.flash { position: absolute; inset: 0; opacity: 0; pointer-events: none; }
+.flash.go { animation: flash .7s ease-out; }
+@keyframes flash { 0% { opacity: .55; } 100% { opacity: 0; } }
+
+/* ---------- Menus ---------- */
+.screen .logo { font-size: 64px; animation: bob 2.4s ease-in-out infinite; }
+@keyframes bob { 50% { transform: translateY(-10px) rotate(-6deg); } }
+.screen h2 { margin: 0; font-size: 34px; color: var(--orange); }
+.btn.small { font-size: 18px; padding: 8px 26px; background: var(--cream); box-shadow: 0 4px 0 #d9c3a5, 0 8px 18px rgba(0,0,0,.12); }
+.menu-row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.menu-col { display: flex; flex-direction: column; gap: 12px; align-items: center; }
+.best { font-weight: 700; opacity: .8; }
+.howto-list { text-align: right; max-width: 520px; font-size: 18px; line-height: 1.7; background: var(--panel); border-radius: 18px; padding: 16px 34px 16px 20px; margin: 0; }
+.settings-panel { background: var(--panel); border-radius: 18px; padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; min-width: min(420px, 100%); }
+.setting { display: flex; justify-content: space-between; align-items: center; gap: 16px; font-weight: 700; font-size: 17px; }
+.setting input[type=range] { width: 180px; accent-color: var(--orange); }
+.setting select { font-family: inherit; font-size: 16px; padding: 4px 8px; border-radius: 8px; }
+.setting input[type=checkbox] { width: 22px; height: 22px; accent-color: var(--orange); }
+.extra { font-weight: 700; color: #c98a1a; }
+.tbtn.gold { background: rgba(200, 190, 170, .6); font-size: 24px; }
+.tbtn.gold.ready { background: linear-gradient(135deg, #ffe58a, #f2b134); animation: glow 1s ease-in-out infinite alternate; }
+.pause-btn { position: absolute; top: 200px; left: 16px; width: 48px !important; height: 48px !important; }
+.touch-buttons { grid-template-columns: repeat(2, 72px); }
+.tbtn.big { grid-column: 2; }
+
+/* ---------- iPhone notch / home bar safe areas ---------- */
+.hud-top { top: max(14px, env(safe-area-inset-top)); right: max(16px, env(safe-area-inset-right)); left: max(16px, env(safe-area-inset-left)); }
+.touch-buttons { bottom: max(24px, env(safe-area-inset-bottom)); right: max(20px, env(safe-area-inset-right)); }
+.joy-zone { padding-bottom: env(safe-area-inset-bottom); }
+.pause-btn { left: max(16px, env(safe-area-inset-left)) !important; }
